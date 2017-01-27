@@ -30,7 +30,6 @@ from lachesis.elements import Span
 from lachesis.elements import Token
 from lachesis.language import Language
 from lachesis.ml import CRFPredictor
-from lachesis.ml import CRFTrainer
 from lachesis.splitters.base import BaseSplitter
 
 
@@ -78,11 +77,13 @@ class CRFSplitter(BaseSplitter):
             #
             # first, sort by the label of the last token
             # to put the candidates with LABEL_LAST first
-            candidates = sorted(candidates, key=lambda x: (1 if x[2][-1] == CRFTrainer.LABEL_LAST else 0), reverse=True)
+            candidates = sorted(candidates, key=lambda x: (1 if x[2][-1] == CRFPredictor.LABEL_LAST else 0), reverse=True)
             # then, sort by probability and end index
             # to put most probable and most long candidates first
             candidates = sorted(candidates, key=lambda x: (x[3], x[1]), reverse=True)
-            # print(u"Sorted: %s" % str(candidates))
+            # for c in candidates:
+            #     print(u"Sorted: %s" % str(c))
+            # print(u"")
             return candidates[0]
 
         # check for e.g. "(applause)" or similar OTHER fragments
@@ -120,6 +121,7 @@ class CRFSplitter(BaseSplitter):
                 candidate = (current_line_start_idx, idx + 1, p_labels, p_probability)
                 # print(u"  New candidate: %s" % str(candidate))
                 candidates.append(candidate)
+                idx += 1
             else:
                 # no, the current sublist would be too long
                 # select best split among the candidates seen so far
@@ -136,7 +138,6 @@ class CRFSplitter(BaseSplitter):
                 current_line_span = Span()
                 current_line_start_idx = chosen[1]
                 idx = chosen[1]
-            idx += 1
 
         if current_line_start_idx < n:
             # we need to add the end of the sentence

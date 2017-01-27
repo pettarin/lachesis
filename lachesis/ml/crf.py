@@ -27,7 +27,6 @@ from __future__ import print_function
 import cPickle as pickle
 import io
 import os
-import pycrfsuite
 import sys
 
 from lachesis.downloaders import Downloader
@@ -35,12 +34,6 @@ from lachesis.elements import Span
 from lachesis.language import Language
 from lachesis.nlpwrappers import NLPEngine
 import lachesis.globalfunctions as gf
-
-# TODO push these down below main()
-ANSI_ERROR = u"\033[91m"
-ANSI_OK = u"\033[92m"
-ANSI_WARNING = u"\033[93m"
-ANSI_END = u"\033[0m"
 
 
 def tokens_to_features(tokens, forward=5, max_chars_per_line=42, debug=False):
@@ -153,6 +146,18 @@ class CRFTrainer(object):
         self.train_data = None
         self.trainer = None
 
+    @property
+    def train_data_cc(self):
+        if self.train_data is None:
+            return 0
+        return len(self.train_data)
+
+    @property
+    def train_data_lines(self):
+        if self.train_data is None:
+            return 0
+        return sum([len(cc) for cc in self.train_data])
+
     def _read_files(self, input_file_paths):
         def _annotated_sentence_to_lines(tokens):
             lines = []
@@ -168,13 +173,18 @@ class CRFTrainer(object):
                 lines.append(cl)
             return lines
 
-        examples = []
+        # NOTE in theory we could account for things like the position
+        #      of a token w.r.t. the whole document or the sentence it belongs
+        #      however here we make an assumption of independence of the split point
+        #      from those facts
+        example_sentences = []
         for ifp in input_file_paths:
             print(u".")
             if os.path.isfile(ifp):
                 doc = Downloader.read_closed_captions(ifp, {u"downloader": u"youtube"})
                 self.nlpe.analyze(doc, wrapper=self.nlpwrapper)
                 for sentence in doc.sentences:
+                    example_lines = []
                     # print(sentence.string(eol=u"|", eos=u"").strip())
                     # sentence is a Span object
                     # sentence.elements is a list of Token objects
@@ -184,12 +194,14 @@ class CRFTrainer(object):
                         # except the last one, which gets the "end" label
                         labels = [self.LABEL_NOT_LAST] * len(line)
                         labels[-1] = self.LABEL_LAST
-                        # convert the list of
+                        # convert the line (i.e., list of Token objects)
+                        # to a list of features
                         features = tokens_to_features(line)
-                        example = (features, labels)
+                        example = (features, labels, line)
                         # print(example)
-                        examples.append(example)
-        return examples
+                        example_lines.append(example)
+                    example_sentences.append(example_lines)
+        return example_sentences
 
     def load_data(self, obj):
         """
@@ -215,11 +227,15 @@ class CRFTrainer(object):
         TBW
         """
         # create a trainer object
+        import pycrfsuite
         self.trainer = pycrfsuite.Trainer(verbose=self.verbose)
 
         # append training data
-        for feature_seq, label_seq in self.train_data:
-            self.trainer.append(feature_seq, label_seq)
+        for sentence in self.train_data:
+            # each sentence contains a list of lines
+            # each line is a triplet (feature_seq, label_seq, tokens)
+            for feature_seq, label_seq, tokens in sentence:
+                self.trainer.append(feature_seq, label_seq)
 
         # do the actual training
         self.trainer.train(model_file_path)
@@ -238,7 +254,14 @@ class CRFPredictor(object):
     TBW
     """
 
+    LABEL_NOT_LAST = CRFTrainer.LABEL_NOT_LAST
+    """ Label for a token that is not the last of a line """
+
+    LABEL_LAST = CRFTrainer.LABEL_LAST
+    """ Label for a token that is the last of a line """
+
     def __init__(self, model_file_path):
+        import pycrfsuite
         self.model_file_path = model_file_path
         self.tagger = pycrfsuite.Tagger()
         self.tagger.open(self.model_file_path)
@@ -254,6 +277,9 @@ class CRFPredictor(object):
 
     def predict(self, obj):
         """
+        ``obj`` is either a list of features or a Span containing Tokens.
+        In the latter case, features will be extracted from the sequence of Tokens.
+
         TBW
         """
         features = None
@@ -332,7 +358,7 @@ def main():
         print(u"Dumping data...")
         trainer.dump_data(dump_file_path)
         print(u"Dumping data... done")
-        print(u"Dumped %d examples to: '%s'" % (len(trainer.train_data), dump_file_path))
+        print(u"Dumped %d ccs / %d lines examples to: '%s'" % (trainer.train_data_cc, trainer.train_data_lines, dump_file_path))
 
     def command_train(language, dump_file_path, model_file_path):
         """
@@ -359,6 +385,14 @@ def main():
 
         TBW
         """
+
+        from lachesis.splitters import CRFSplitter
+
+        ANSI_ERROR = u"\033[91m"
+        ANSI_OK = u"\033[92m"
+        ANSI_WARNING = u"\033[93m"
+        ANSI_END = u"\033[0m"
+
         def check_prediction(l_predictor, l_subf, l_subl):
             """
             Call the tagger and check the prediction
@@ -398,15 +432,103 @@ def main():
                     print("%s%s%s" % (ANSI_ERROR, chosen, ANSI_END))
             return (cc_count, cc_count_good)
 
+        def evaluate_pure_labelling(example_sentences, predictor):
+            """
+            Evaluate the pure labelling of lines, that is,
+            get the label string for a line
+            (knowing that it is the whole line),
+            and confront it with the ground truth label string
+            (which, in particular, has form: "___...___E").
+            """
+            print(u"Evaluating pure labelling...")
+            n_sentences = len(example_sentences)
+            n_sentences_good = 0
+            n_lines = 0
+            n_lines_good = 0
+            for example_sentence in example_sentences:
+                # each sentence is a list of lines
+                n_lines += len(example_sentence)
+                # each line is a pair (features_seq, labels_seq)
+                line_predictions = []
+                for features, labels, tokens in example_sentence:
+                    real_s, pred_s, str_s, prob = check_prediction(predictor, features, labels, tokens)
+                    line_predictions.append(pred_s == real_s)
+                good = [l for l in line_predictions if l]
+                n_lines_good += len(good)
+                n_sentences_good += 0 if (False in good) else 1
+
+            print(u"  Lines     labelled correctly: %d/%d (%.3f)" % (n_lines_good, n_lines, float(n_lines_good) / n_lines))
+            print(u"  Sentences labelled correctly: %d/%d (%.3f)" % (n_sentences_good, n_sentences, float(n_sentences_good) / n_sentences))
+            print(u"Evaluating pure labelling... done")
+            print(u"")
+
+        def evaluate_splitter(example_sentences, language, model_file_path):
+            print(u"Evaluating splitter...")
+            n_sentences = len(example_sentences)
+            n_sentences_equal = 0
+            n_sentences_same_length = 0
+            n_sentences_different = 0
+            for example_sentence in example_sentences:
+                # TODO itertools...
+                real_lines = []
+                for _, _, tokens in example_sentence:
+                    real_lines.append(u"".join([t.augmented_string for t in tokens]).strip())
+                #print(real_lines)
+
+                lines = [l for l in example_sentence]
+                #features = [l[0] for l in lines]
+                labels = [l[1] for l in lines]
+                tokens = [l[2] for l in lines]
+                #features = [item for sublist in features for item in sublist]
+                labels = [item for sublist in labels for item in sublist]
+                tokens = [item for sublist in tokens for item in sublist]
+
+                splitter = CRFSplitter(language=language, model_file_path=model_file_path)
+                ccs = splitter._split_sentence(Span(elements=tokens))
+                predicted_lines = []
+                for cc in ccs:
+                    for line in cc.elements:
+                        predicted_lines.append(line.string().strip())
+                #print(predicted_lines)
+
+                if predicted_lines == real_lines:
+                    n_sentences_equal += 1
+                elif len(predicted_lines) == len(real_lines):
+                    n_sentences_same_length += 1
+                else:
+                    n_sentences_different += 1
+                    # print(u"R: " + u" | ".join(real_lines))
+                    # print(u"P: " + u" | ".join(predicted_lines))
+                    # print(u"")
+
+            print(u"  Sentences split exactly:     %d/%d (%.3f)" % (n_sentences_equal, n_sentences, float(n_sentences_equal) / n_sentences))
+            print(u"  Sentences split same length: %d/%d (%.3f)" % (n_sentences_same_length, n_sentences, float(n_sentences_same_length) / n_sentences))
+            print(u"  Sentences split differently: %d/%d (%.3f)" % (n_sentences_different, n_sentences, float(n_sentences_different) / n_sentences))
+            print(u"Evaluating splitter... done")
+            print(u"")
+
         print(u"Loading data...")
         trainer = CRFTrainer(language=language, nlpwrapper=u"pattern")
         arg = [dump_file_path] if single else dump_file_path
         trainer.load_data(arg)
-        examples = trainer.train_data
+        #examples = trainer.train_data
+        example_sentences = trainer.train_data
         print(u"Loading data... done")
 
         print(u"Testing...")
-        predictor = CRFPredictor(model_file_path)
+
+        # first, test pure labelling of lines
+        if not True:
+            predictor = CRFPredictor(model_file_path)
+            evaluate_pure_labelling(example_sentences, predictor)
+
+        # then, mock the splitter behavior
+        if True:
+            evaluate_splitter(example_sentences, language, model_file_path)
+
+        print(u"Testing... done")
+
+        """
         all_predictions = []
         n = len(examples)
         for idx in range(n):
@@ -435,6 +557,7 @@ def main():
         cc_count, cc_count_good = evaluate_predictions(all_predictions)
         print(u"Evaluating... done")
         print(u"CC lines segmented correctly: %d/%d (%.3f)" % (cc_count_good, cc_count, float(cc_count_good) / cc_count))
+        """
 
     ##########################################################################
     #
