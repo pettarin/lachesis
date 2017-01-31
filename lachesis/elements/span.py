@@ -24,11 +24,24 @@ TBW
 
 from __future__ import absolute_import
 from __future__ import print_function
+import re
 
+from lachesis.elements.token import EndOfCCToken
 from lachesis.elements.token import EndOfLineToken
 from lachesis.elements.token import EndOfSentenceToken
 from lachesis.language import Language
 import lachesis.globalfunctions as gf
+
+
+def clean(string, eoc=u"", eol=u"", eos=u""):
+    s = string
+    s = s.replace(EndOfCCToken.RAW, eoc)
+    s = s.replace(EndOfLineToken.RAW, eol)
+    s = s.replace(EndOfSentenceToken.RAW, eos)
+    s = s.replace(u"\n", u" ")
+    s = re.sub(r" [ ]*", u" ", s)
+    s = s.strip()
+    return s
 
 
 class Span(object):
@@ -36,9 +49,6 @@ class Span(object):
     A Span corresponds to an arbitrary sublist of Tokens of a Document.
     Its elements might be Token objects or other (nested) Span objects.
     """
-
-    JOINER = u""
-    FLAT_JOINER = u""
 
     def __init__(self, raw=None, elements=None):
         self.raw = raw
@@ -51,80 +61,188 @@ class Span(object):
         self.elements.extend(lst)
 
     def __str__(self):
-        return self.string(flat=True, clean=True)
+        return self.clean_string
 
-    def _helper_string(self, delimiter, raw=False, flat=False, tagged=False):
-        if raw:
-            if self.raw is not None:
-                return self.raw
-            if flat:
-                return delimiter.join([e.string(raw=True, flat=True) for e in self.elements])
-            return delimiter.join([e.string(raw=True) for e in self.elements])
-        else:
-            if tagged:
-                return delimiter.join([e.string(tagged=True) for e in self.elements])
-            return delimiter.join([e.string() for e in self.elements])
+    @property
+    def clean_string(self):
+        return clean(self.flat_string)
 
-    def _clean_eol_eos(self, s, eol=None, eos=None):
-        if eol is not None:
-            s = s.replace(EndOfLineToken.RAW, eol)
-        if eos is not None:
-            s = s.replace(EndOfSentenceToken.RAW, eos)
-        return s
-
-    def string(self, raw=False, flat=False, tagged=False, clean=False, eol=None, eos=None):
-        if tagged:
-            s = self._helper_string(self.JOINER, raw=False, tagged=True)
-        elif flat:
-            s = self._helper_string(self.FLAT_JOINER, raw=True, flat=True)
-        elif raw:
-            s = self._helper_string(self.JOINER, raw=True, flat=False)
-        else:
-            s = self._helper_string(self.JOINER, raw=False, tagged=False)
-        if clean:
-            eol = u""
-            eos = u""
-        return self._clean_eol_eos(s, eol, eos)
+    def marked_string(self, eoc=u"", eol=u"", eos=u""):
+        return clean(self.augmented_string, eoc=eoc, eol=eol, eos=eos)
 
 
-class RawTextSpan(Span):
-    JOINER = u"\n"
-    FLAT_JOINER = u" "
+class TokenizedTextSpan(Span):
+
+    @property
+    def sentences(self):
+        return self.elements
+
+    @property
+    def raw_string(self):
+        return u"\n".join([s.raw_string for s in self.sentences])
+
+    @property
+    def augmented_string(self):
+        return u"\n".join([s.augmented_string for s in self.sentences])
+
+    @property
+    def flat_string(self):
+        return self.augmented_string
 
 
-class RawSentenceSpan(Span):
-    JOINER = u" "
-    FLAT_JOINER = u" "
+class TokenizedSentenceSpan(Span):
+
+    @property
+    def tokens(self):
+        return self.elements
+
+    @property
+    def raw_string(self):
+        return u" ".join([t.raw_string for t in self.tokens])
+
+    @property
+    def augmented_string(self):
+        return u"".join([t.augmented_string for t in self.tokens])
+
+    @property
+    def flat_string(self):
+        return self.augmented_string
 
 
-class RawCCListSpan(Span):
-    JOINER = u"\n\n"
-    FLAT_JOINER = u" "
+class TextSpan(Span):
+    """
+    A Span holding either a raw string, or a list of strings,
+    each supposed to be a sentence.
+    """
+
+    @property
+    def sentences(self):
+        return self.elements
+
+    @property
+    def raw_string(self):
+        if self.raw is not None:
+            return self.raw
+        return u"\n".join([s.raw_string for s in self.sentences])
+
+    @property
+    def augmented_string(self):
+        if self.raw is not None:
+            return self.raw
+        return u"\n".join([s.augmented_string for s in self.sentences])
+
+    @property
+    def flat_string(self):
+        if self.raw is not None:
+            return self.raw
+        return u" ".join([s.flat_string for s in self.sentences])
+
+
+class SentenceSpan(Span):
+    """
+    A Span holding a raw string without new line characters,
+    representing a sentence.
+    """
+
+    def __init__(self, raw):
+        self.raw = clean(raw)
+        self.elements = None
+
+    @property
+    def raw_string(self):
+        return self.raw
+
+    @property
+    def augmented_string(self):
+        return u"%s %s" % (self.raw, EndOfSentenceToken.RAW)
+
+    @property
+    def flat_string(self):
+        return u"%s %s" % (self.raw, EndOfSentenceToken.RAW)
+
+
+class CCListSpan(Span):
+    """
+    A Span holding a list of CCs.
+    """
 
     @property
     def ccs(self):
         return self.elements
 
+    @property
+    def raw_string(self):
+        return u"\n\n".join([cc.raw_string for cc in self.ccs])
 
-class RawCCSpan(Span):
-    JOINER = u"\n"
-    FLAT_JOINER = u" "
+    @property
+    def augmented_string(self):
+        return u"\n\n".join([cc.augmented_string for cc in self.ccs])
 
-    def __init__(self, raw=None, elements=[], time_interval=None):
-        super(RawCCSpan, self).__init__(raw=raw, elements=elements)
+    @property
+    def flat_string(self):
+        return u" ".join([cc.flat_string for cc in self.ccs])
+
+
+class CCSpan(Span):
+    """
+    A Span holding a CC, that is, a list of CC line objects.
+    Optionally, it can have an identifier and a time interval
+    associated to it.
+    """
+
+    def __init__(self, raw=None, elements=[], identifier=None, time_interval=None):
+        super(CCSpan, self).__init__(raw=raw, elements=elements)
+        self.identifier = identifier
         self.time_interval = time_interval
 
     @property
     def lines(self):
         return self.elements
 
+    @property
+    def raw_string(self):
+        return u"\n".join([l.raw_string for l in self.lines])
 
-class RawCCLineSpan(Span):
+    @property
+    def augmented_string(self):
+        return u"%s %s" % (u"\n".join([l.augmented_string for l in self.lines]), EndOfCCToken.RAW)
+
+    @property
+    def flat_string(self):
+        return u"%s %s" % (u" ".join([l.augmented_string for l in self.lines]), EndOfCCToken.RAW)
+
+
+class CCLineSpan(Span):
+    """
+    A Span representing a CC line, that is,
+    a string without new lines in it.
+    """
+
+    def __init__(self, raw=None, elements=None):
+        if raw is None:
+            self.raw = None
+        else:
+            self.raw = clean(raw)
+        self.elements = [] if elements is None else elements
+
+    @property
+    def tokens(self):
+        return self.elements
 
     @property
     def line(self):
-        return self.raw
+        return self.raw_string
 
-    def string(self, raw=False, flat=False, tagged=False, clean=False, eol=None, eos=None):
-        # overrides with raw=True, as this element only contains the raw string
-        return super(RawCCLineSpan, self).string(raw=True, flat=flat, tagged=tagged, clean=clean, eol=eol, eos=eos)
+    @property
+    def raw_string(self):
+        if self.raw is not None:
+            return self.raw
+        return u"".join([t.augmented_string for t in self.tokens])
+
+    @property
+    def augmented_string(self):
+        return u"%s %s" % (self.raw_string, EndOfLineToken.RAW)
+
+    @property
+    def flat_string(self):
+        return u"%s %s" % (self.raw_string, EndOfLineToken.RAW)

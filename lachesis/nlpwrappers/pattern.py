@@ -25,8 +25,6 @@ TBW
 from __future__ import absolute_import
 from __future__ import print_function
 
-from lachesis.elements import Span
-from lachesis.elements import Token
 from lachesis.language import Language
 from lachesis.nlpwrappers.base import BaseWrapper
 from lachesis.nlpwrappers.upostags import UniversalPOSTags
@@ -132,14 +130,7 @@ class PatternWrapper(BaseWrapper):
             sentence_tokens = []
             for lib_token in lib_sentence:
                 #
-                # NOTE: if chunks=True use:
-                # raw, upos_tag, chunk_tag, pnp_tag = lib_token.tags
-                # token = Token(
-                #     raw=raw,
-                #     upos_tag=self.UPOSTAG_MAP[upos_tag],
-                #     chunk_tag=chunk_tag,
-                #     pnp_tag=pnp_tag
-                # )
+                # NOTE: chunks=False
                 #
                 raw, upos_tag = lib_token.tags
                 # NOTE: pattern replaces "/" with "&slash;"
@@ -147,5 +138,17 @@ class PatternWrapper(BaseWrapper):
                 raw = raw.replace(u"&slash;", u"/")
                 token = self._create_token(raw, upos_tag)
                 sentence_tokens.append(token)
+                #
+
+                #
+                # NOTE: chunks=True
+                #
+                # raw, upos_tag, chunk_tag, pnp_tag = lib_token.tags
+                # # NOTE: pattern replaces "/" with "&slash;"
+                # #       so we need to convert it back
+                # raw = raw.replace(u"&slash;", u"/")
+                # token = self._create_token(raw, upos_tag, chunk_tag, pnp_tag)
+                # sentence_tokens.append(token)
+                #
             sentences.append(sentence_tokens)
         return sentences

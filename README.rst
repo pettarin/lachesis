@@ -5,7 +5,7 @@ lachesis
 captions
 
 -  Version: 0.0.3
--  Date: 2017-01-26
+-  Date: 2017-01-31
 -  Developed by: `Alberto Pettarin <http://www.albertopettarin.it/>`__
 -  License: the GNU Affero General Public License Version 3 (AGPL v3)
 -  Contact: info@readbeyond.it
@@ -249,8 +249,11 @@ Parse an existing TTML file downloaded from YouTube
 
     # print several representations of the CCs
     print(doc.raw_string)                       # multi line string, similar to SRT but w/o ids or times
-    print(doc.raw_flat_clean_string)            # single line string, w/o CC line marks
-    print(doc.raw.string(flat=True, eol=u"|"))  # single line string, CC lines separated by '|' characters
+    print(doc.augmented_string)                 # as above, with placeholders for end-of-cc and end-of-line
+    print(doc.flat_string)                      # with placeholders, no new line chars
+    print(doc.clean_string)                     # no placeholders, no new line chars
+    print(doc.marked_string(eol=u"|"))          # as clean_string, but with '|' where each line ends
+    print(doc.marked_string(eoc=u"|"))          # as clean_string, but with '|' where each cc ends
 
 Tokenize, split sentences, and POS tagging
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -324,7 +327,7 @@ Split into closed captions
 
     # print the segmented CCs
     for cc in doc.ccs:
-        for line in cc.elements:
+        for line in cc.lines:
             print(line)
         print(u"")
 

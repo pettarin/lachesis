@@ -33,9 +33,9 @@ from lxml import etree
 from lachesis.downloaders.errors import NotDownloadedError
 from lachesis.elements import Document
 from lachesis.elements import EndOfLineToken
-from lachesis.elements import RawCCLineSpan
-from lachesis.elements import RawCCListSpan
-from lachesis.elements import RawCCSpan
+from lachesis.elements import CCLineSpan
+from lachesis.elements import CCListSpan
+from lachesis.elements import CCSpan
 from lachesis.exacttiming import TimeInterval
 from lachesis.exacttiming import TimeValue
 import lachesis.globalfunctions as gf
@@ -157,7 +157,7 @@ class YouTubeDownloader(object):
             except:
                 pass
 
-        raw_ccl = RawCCListSpan()
+        raw_ccl = CCListSpan()
 
         # parse fragments
         for elem in root.iter(TTML_P):
@@ -176,10 +176,9 @@ class YouTubeDownloader(object):
             lines = [l.strip() for l in text.split(PLACEHOLDER_BR)]
             # make sure we return unicode strings
             lines = [gf.to_unicode_string(l) for l in lines if len(l) > 0]
-            lines = [u"%s %s" % (l, EndOfLineToken.RAW) for l in lines]
             # append span objects
-            raw_ccl.append(RawCCSpan(
-                elements=[RawCCLineSpan(raw=l) for l in lines],
+            raw_ccl.append(CCSpan(
+                elements=[CCLineSpan(raw=l) for l in lines],
                 time_interval=TimeInterval(TimeValue(begin), TimeValue(end)),
             ))
 

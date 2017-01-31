@@ -26,9 +26,11 @@ from __future__ import absolute_import
 from __future__ import print_function
 
 from lachesis.elements import Document
-from lachesis.elements import EndOfSentenceToken
+from lachesis.elements import EndOfCCToken
 from lachesis.elements import EndOfLineToken
-from lachesis.elements import Span
+from lachesis.elements import EndOfSentenceToken
+from lachesis.elements import TokenizedTextSpan
+from lachesis.elements import TokenizedSentenceSpan
 from lachesis.elements import Token
 from lachesis.language import Language
 from lachesis.nlpwrappers.upostags import UniversalPOSTags
@@ -74,10 +76,10 @@ class BaseWrapper(object):
             new_sentences = []
             new_tokens = []
             for sent in sentences:
-                # remove an EndOfLineToken at the begin or end
-                while (len(sent) > 0) and (isinstance(sent[0], EndOfLineToken)):
+                # remove any special token at the begin or end
+                while (len(sent) > 0) and (sent[0].is_special):
                     sent = sent[1:]
-                while (len(sent) > 0) and (isinstance(sent[-1], EndOfLineToken)):
+                while (len(sent) > 0) and (sent[-1].is_special):
                     sent = sent[:-1]
                 # return only if at least one token survived
                 if len(sent) > 0:
@@ -92,13 +94,6 @@ class BaseWrapper(object):
                 if t.is_regular:
                     i = doc_string.find(t.raw, i) + len(t.raw)
                     t.trailing_whitespace = (i < n) and (doc_string[i] == u" ")
-
-        doc_string = document.raw_flat_clean_string
-        if (doc_string is None) or (len(doc_string) < 1):
-            raise ValueError(u"The document has no text set.")
-        if (document.language is not None) and (document.language != self.language):
-            # TODO warning instead?
-            raise ValueError(u"The document has been created with the '%s' language set while this NLP library has loaded the '%s' language." % (document.language, self.language))
 
         def _fix_across_sentence_splits(sentences):
             # move characters with no trailing whitespace
@@ -122,14 +117,24 @@ class BaseWrapper(object):
                 sentences[i] = curr_sent
             return sentences
 
+        # check that the document and NLP language match
+        if (document.language is not None) and (document.language != self.language):
+            # TODO warning instead?
+            raise ValueError(u"The document has been created with the '%s' language set while this NLP library has loaded the '%s' language." % (document.language, self.language))
+
+        # check that we actually have some raw text
+        if not document.has_raw:
+            raise ValueError(u"The document has no text set.")
+
         # remove any information from the document
         document.clear()
 
         # do the actual analysis
-        doc_string_with_eol = document.raw.string(flat=True)
+        doc_string = document.clean_string
+        doc_string_with_eol = document.flat_string
         sentences = self._analyze(doc_string_with_eol)
 
-        # remove unnecessary EndOfLineToken objects
+        # remove unnecessary special tokens
         # and keep only non-empty sentences
         sentences, tokens = _remove_unnecessary_eols(sentences)
 
@@ -139,7 +144,7 @@ class BaseWrapper(object):
         # fix (punctuation) across sentence splits
         sentences = _fix_across_sentence_splits(sentences)
 
-        # remove unnecessary EndOfLineToken objects
+        # remove unnecessary special tokens
         # and keep only non-empty sentences
         #
         # NOTE: yes, running this twice is mandatory
@@ -147,13 +152,13 @@ class BaseWrapper(object):
         sentences, tokens = _remove_unnecessary_eols(sentences)
 
         # append resulting non-empty sentences to document
-        document.text_view = Span()
+        document.text_view = TokenizedTextSpan()
         for sent in sentences:
             # add end of sentence token
             token = EndOfSentenceToken()
             sent.append(token)
             # add all surviving tokens
-            sentence = Span()
+            sentence = TokenizedSentenceSpan()
             document.tokens.extend(sent)
             sentence.extend(sent)
             document.text_view.append(sentence)
@@ -165,10 +170,18 @@ class BaseWrapper(object):
         """
         raise NotImplementedError(u"This method should be implemented in a subclass.")
 
-    def _create_token(self, raw, upos_tag, lemma=None):
+    def _create_token(self, raw, upos_tag, chunk_tag=None, pnp_tag=None, lemma=None):
         """
-        Return a new token, either a EndOfLineToken or a regular token.
+        Return a new token: an EndOfLineToken/EndOfCCToken or a regular token.
         """
         if raw == EndOfLineToken.RAW:
             return EndOfLineToken()
-        return Token(raw=raw, upos_tag=self.UPOSTAG_MAP[upos_tag], lemma=lemma)
+        if raw == EndOfCCToken.RAW:
+            return EndOfCCToken()
+        return Token(
+            raw,
+            upos_tag=self.UPOSTAG_MAP[upos_tag],
+            chunk_tag=chunk_tag,
+            pnp_tag=pnp_tag,
+            lemma=lemma
+        )

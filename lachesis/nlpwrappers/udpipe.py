@@ -26,8 +26,6 @@ from __future__ import absolute_import
 from __future__ import print_function
 import os
 
-from lachesis.elements import Span
-from lachesis.elements import Token
 from lachesis.language import Language
 from lachesis.nlpwrappers.base import BaseWrapper
 

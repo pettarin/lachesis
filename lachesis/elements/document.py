@@ -26,11 +26,9 @@ from __future__ import absolute_import
 from __future__ import print_function
 import re
 
-from lachesis.elements.span import RawSentenceSpan
-from lachesis.elements.span import RawTextSpan
+from lachesis.elements.span import SentenceSpan
+from lachesis.elements.span import TextSpan
 from lachesis.elements.span import Span
-from lachesis.elements.token import EndOfLineToken
-from lachesis.elements.token import EndOfSentenceToken
 from lachesis.language import Language
 import lachesis.globalfunctions as gf
 
@@ -75,10 +73,10 @@ class Document(object):
         if isinstance(raw, Span):
             return raw
         if gf.is_unicode(raw):
-            return RawTextSpan(raw=raw)
+            return TextSpan(raw=raw)
         if gf.is_list_of_unicode(raw):
-            return RawTextSpan(
-                elements=[RawSentenceSpan(raw=s) for s in raw]
+            return TextSpan(
+                elements=[SentenceSpan(raw=s) for s in raw]
             )
         raise TypeError(u"Parameter raw must be a unicode string or a list of unicode strings or a Span object. Found: '%s'" % type(raw))
 
@@ -92,26 +90,38 @@ class Document(object):
 
     def __str__(self):
         if self.text_view is not None:
-            return self.text_view.string(flat=True, clean=True)
+            return self.text_view.clean_string
         if self.ccs_view is not None:
-            return self.ccs_view.string()
-        if self.has_raw:
-            return self.raw_flat_clean_string
-        return None
+            return self.ccs_view.raw_string
+        return self.raw_string
 
     @property
     def raw_string(self):
         if self.has_raw:
-            return self.raw.string(eol=u"", eos=u"")
+            return self.raw.raw_string
         return None
 
     @property
-    def raw_flat_clean_string(self):
+    def augmented_string(self):
         if self.has_raw:
-            s = self.raw.string(raw=True, flat=True, clean=True)
-            s = re.sub(u"\n", u" ", s)
-            s = re.sub(r" [ ]*", u" ", s)
-            return s
+            return self.raw.augmented_string
+        return None
+
+    @property
+    def flat_string(self):
+        if self.has_raw:
+            return self.raw.flat_string
+        return None
+
+    @property
+    def clean_string(self):
+        if self.has_raw:
+            return self.raw.clean_string
+        return None
+
+    def marked_string(self, eoc=u"", eol=u"", eos=u""):
+        if self.has_raw:
+            return self.raw.marked_string(eoc=eoc, eol=eol, eos=eos)
         return None
 
     @property

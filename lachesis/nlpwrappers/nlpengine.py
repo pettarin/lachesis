@@ -40,8 +40,8 @@ class NLPEngine(object):
     # NOTE: wrappers are probed in this exact order
     KNOWN_WRAPPERS = [
         SpacyWrapper,
-        PatternWrapper,
         NLTKWrapper,
+        PatternWrapper,
         UDPipeWrapper,
     ]
 

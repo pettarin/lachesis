@@ -72,6 +72,14 @@ class Token(object):
         return not self.is_special
 
     @property
+    def raw_string(self):
+        """
+        Return the raw string of the token,
+        NOT including the trailing whitespace, if any.
+        """
+        return self.raw
+
+    @property
     def augmented_string(self):
         """
         Return a string representation of the token,
@@ -82,67 +90,52 @@ class Token(object):
             return self.raw + u" "
         return self.raw
 
-    def string(self, raw=False, flat=False, tagged=False):
-        if tagged:
-            """
-            Return a tagged representation of the token,
-            in the form ``STRING/UPOS/C``, where:
-
-            * STRING is the token string,
-            * UPOS is the Universal POS of the token,
-            * C is "+" if the token has a trailing whitespace, "-" if it does not,
-              or "=" if the token is the last token of a sentence
-            """
-            return u"%s/%s/%s " % (self._tagged_tuple)
-        else:
-            return self.augmented_string
-
     @property
-    def _tagged_tuple(self):
+    def tagged_string(self):
+        """
+        Return a tagged representation of the token:
+
+        ``raw/upos/ws``
+
+        where ``ws`` is ``Y`` (yes), ``N`` (no),
+        or ``S`` (special).
+        """
         if self.is_special:
-            ws = u"="
+            ws = u"S"
         elif self.trailing_whitespace:
-            ws = u"+"
+            ws = u"Y"
         else:
-            ws = u"-"
-        return (self.raw, self.upos_tag, ws)
-
-    @property
-    def ml_string(self):
-        return (u"%s|||%s|||%s" % (self._tagged_tuple)).replace(u"&", u"&amp;")
+            ws = u"N"
+        return u"%s/%s/%s" % (self.raw, self.upos_tag, ws)
 
 
-class EndOfSentenceToken(Token):
+class SpecialToken(Token):
 
-    RAW = u"lachesisendofsentencetoken"
-    UPOS_TAG = u"YYY"
+    RAW = u"lachesisspecialtoken"
+    UPOS_TAG = u"LAC"
 
     def __init__(self):
-        super(EndOfSentenceToken, self).__init__(
-            raw=self.RAW,
+        super(SpecialToken, self).__init__(
+            self.RAW,
             upos_tag=self.UPOS_TAG
         )
         self.trailing_whitespace = True
         self.special = True
 
-    @property
-    def ml_string(self):
-        return u"%s" % (self.upos_tag)
+
+class EndOfSentenceToken(SpecialToken):
+
+    RAW = u"lachesisendofsentencetoken"
+    UPOS_TAG = u"XXX"
 
 
-class EndOfLineToken(Token):
+class EndOfCCToken(SpecialToken):
+
+    RAW = u"lachesisendofcctoken"
+    UPOS_TAG = u"YYY"
+
+
+class EndOfLineToken(SpecialToken):
 
     RAW = u"lachesisendoflinetoken"
     UPOS_TAG = u"ZZZ"
-
-    def __init__(self):
-        super(EndOfLineToken, self).__init__(
-            raw=self.RAW,
-            upos_tag=self.UPOS_TAG
-        )
-        self.trailing_whitespace = True
-        self.special = True
-
-    @property
-    def ml_string(self):
-        return u"%s" % (self.upos_tag)

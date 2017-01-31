@@ -25,7 +25,7 @@ TBW
 from __future__ import absolute_import
 from __future__ import print_function
 
-from lachesis.elements import Span
+from lachesis.elements import CCListSpan
 from lachesis.language import Language
 
 
@@ -33,8 +33,9 @@ class BaseSplitter(object):
     """
     TBW
 
-    A splitter, that is, a class that takes a Text object
-    and splits it into a Span.
+    A splitter, that is, a class that takes a Document object
+    and splits it into a CCListSpan object, made of several
+    CCSpan objects, each including one or more CCLineSpan objects.
     """
 
     CODE = u"base"
@@ -76,7 +77,7 @@ class BaseSplitter(object):
         is on a single line and if it is "(...)", "[...]", or "{...}".
         """
         # TODO allow the user to specify her own "other" rules
-        string = sentence_span.string(raw=True)
+        string = sentence_span.clean_string
         if (
             (string is not None) and
             (len(string) >= 2) and
@@ -124,7 +125,7 @@ class BaseSplitter(object):
         """
         TBW
         """
-        ccs_view = Span()
+        ccs_view = CCListSpan()
         for sentence_span in document.sentences:
             ccs = self._split_sentence(sentence_span)
             ccs_view.extend(ccs)
