@@ -105,8 +105,8 @@ In addition to the dependencies listed above,
 to perform POS tagging and sentence segmentation
 ``lachesis`` can use one or more of the following libraries:
 
-* ``Pattern`` (install with ``pip install pattern``, [see here](http://www.clips.ua.ac.be/pattern))
 * ``NLTK`` (install with ``pip install nltk``, [see here](http://www.nltk.org/))
+* ``Pattern`` (install with ``pip install pattern``, [see here](http://www.clips.ua.ac.be/pattern))
 * ``spaCy`` (install with ``pip install spacy``, [see here](https://spacy.io/))
 * ``UDPipe`` (install with ``pip install ufal.udpipe``, [see here](https://ufal.mff.cuni.cz/))
 
@@ -138,41 +138,41 @@ in their standard language models pack.
 (Additional languages might be supported by third party projects/downloads
 or added over time.)
 
-| Language / Library    | Pattern   | NLTK  | spaCy | UDPipe    |
-|-----------------------|-----------|-------|-------|-----------|
-| Arabic                |           |       |       | ✓         |
-| Basque                |           |       |       | ✓         |
-| Bulgarian             |           |       |       | ✓         |
-| Croatian              |           |       |       | ✓         |
-| Czech                 |           | ✓     |       | ✓         |
-| Danish                |           | ✓     |       | ✓         |
-| Dutch                 | ✓         | ✓     |       | ✓         |
-| English               | ✓         | ✓     | ✓     | ✓         |
-| Estonian              |           | ✓     |       | ✓         |
-| Finnish               |           | ✓     |       | ✓         |
-| French                | ✓         | ✓     |       | ✓         |
-| German                | ✓         | ✓     | ✓     | ✓         |
-| Gothic                |           |       |       | ✓         |
-| Greek                 |           | ✓     |       | ✓         |
-| Greek (ancient)       |           |       |       | ✓         |
-| Hebrew                |           |       |       | ✓         |
-| Hindi                 |           |       |       | ✓         |
-| Hungarian             |           |       |       | ✓         |
-| Indonesian            |           |       |       | ✓         |
-| Irish                 |           |       |       | ✓         |
-| Italian               | ✓         | ✓     |       | ✓         |
-| Latin                 |           |       |       | ✓         |
-| Norwegian             |           | ✓     |       | ✓         |
-| Old Church Slavonic   |           |       |       | ✓         |
-| Persian               |           |       |       | ✓         |
-| Polish                |           | ✓     |       | ✓         |
-| Portuguese            |           | ✓     |       | ✓         |
-| Romanian              |           |       |       | ✓         |
-| Slovenian             |           | ✓     |       | ✓         |
-| Spanish               | ✓         | ✓     |       | ✓         |
-| Swedish               |           | ✓     |       | ✓         |
-| Tamil                 |           |       |       | ✓         |
-| Turkish               |           | ✓     |       |           |
+| Language / Library    | NLTK  | Pattern   | spaCy | UDPipe    |
+|-----------------------|-------|-----------|-------|-----------|
+| Arabic                |       |           |       | ✓         |
+| Basque                |       |           |       | ✓         |
+| Bulgarian             |       |           |       | ✓         |
+| Croatian              |       |           |       | ✓         |
+| Czech                 | ✓     |           |       | ✓         |
+| Danish                | ✓     |           |       | ✓         |
+| Dutch                 | ✓     | ✓         |       | ✓         |
+| English               | ✓     | ✓         | ✓     | ✓         |
+| Estonian              | ✓     |           |       | ✓         |
+| Finnish               | ✓     |           |       | ✓         |
+| French                | ✓     | ✓         |       | ✓         |
+| German                | ✓     | ✓         | ✓     | ✓         |
+| Gothic                |       |           |       | ✓         |
+| Greek                 | ✓     |           |       | ✓         |
+| Greek (ancient)       |       |           |       | ✓         |
+| Hebrew                |       |           |       | ✓         |
+| Hindi                 |       |           |       | ✓         |
+| Hungarian             |       |           |       | ✓         |
+| Indonesian            |       |           |       | ✓         |
+| Irish                 |       |           |       | ✓         |
+| Italian               | ✓     | ✓         |       | ✓         |
+| Latin                 |       |           |       | ✓         |
+| Norwegian             | ✓     |           |       | ✓         |
+| Old Church Slavonic   |       |           |       | ✓         |
+| Persian               |       |           |       | ✓         |
+| Polish                | ✓     |           |       | ✓         |
+| Portuguese            | ✓     |           |       | ✓         |
+| Romanian              |       |           |       | ✓         |
+| Slovenian             | ✓     |           |       | ✓         |
+| Spanish               | ✓     | ✓         |       | ✓         |
+| Swedish               | ✓     |           |       | ✓         |
+| Tamil                 |       |           |       | ✓         |
+| Turkish               | ✓     |           |       |           |
 
 
 ## Usage
