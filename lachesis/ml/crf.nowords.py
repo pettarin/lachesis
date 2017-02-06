@@ -59,8 +59,8 @@ SPECIAL_POS = [
 
 def sentence_to_features(
     sentence,
-    look_behind=2,
-    look_ahead=4,
+    look_behind=5,
+    look_ahead=20,
     max_chars_per_line=42,
     debug=False
 ):
@@ -133,7 +133,7 @@ def sentence_to_features(
 
     for idx in range(n):
         feat = {
-            "word": words[idx],
+            # "word": words[idx],
             "pos": poss[idx],
             "ws": wses[idx],
             # "len": lens[idx],
@@ -146,7 +146,6 @@ def sentence_to_features(
             for offset in range(1, 1 + look_behind):
                 try:
                     if plens[idx] - plens[idx - offset] <= max_chars_per_line:
-                        add_feature(feat, "word_%d", words, idx, -offset, -offset)
                         # add_feature(feat, "ws_%d", wses, idx, -offset, -offset)
                         add_feature(feat, "pos_%d", poss, idx, -offset, -offset)
                         add_feature(feat, "pos_%d_%d", poss, idx, -offset, 0)
@@ -157,7 +156,6 @@ def sentence_to_features(
             for offset in range(1, 1 + look_ahead):
                 try:
                     if plens[idx + offset + 1] - plens[idx] <= max_chars_per_line:
-                        add_feature(feat, "word_%d", words, idx, +offset, +offset)
                         # add_feature(feat, "ws_%d", wses, idx, +offset, +offset)
                         add_feature(feat, "pos_%d", poss, idx, +offset, +offset)
                         add_feature(feat, "pos_%d_%d", poss, idx, 0, +offset)
@@ -169,7 +167,6 @@ def sentence_to_features(
             for offset in range(1, 1 + min(look_behind, look_ahead)):
                 try:
                     if plens[idx + offset] - plens[idx - offset] <= max_chars_per_line:
-                        add_feature(feat, "word_%d", words, idx, -offset, +offset)
                         add_feature(feat, "pos_%d_%d", poss, idx, -offset, +offset)
                         add_feature(feat, "plen_%d_%d", plens, idx, -offset, +offset)
                 except:

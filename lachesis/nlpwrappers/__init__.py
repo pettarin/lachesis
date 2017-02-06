@@ -29,3 +29,4 @@ from lachesis.nlpwrappers.nltk import NLTKWrapper
 from lachesis.nlpwrappers.spacy import SpacyWrapper
 from lachesis.nlpwrappers.pattern import PatternWrapper
 from lachesis.nlpwrappers.udpipe import UDPipeWrapper
+from lachesis.nlpwrappers.upostags import UniversalPOSTags

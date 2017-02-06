@@ -118,11 +118,11 @@ class YouTubeDownloader(object):
         and return a Document object.
         """
         # constants
-        PLACEHOLDER_BR = u" ||| "
+        PLACEHOLDER_BR = u"|lachesisplaceholderbr|"
         PLACEHOLDER_NO_TEXT = u"()"
         PATTERN_SPAN_OPEN = re.compile(r"<span[^>]*>")
         PATTERN_SPAN_CLOSE = re.compile(r"</span>")
-        PATTERN_BR = re.compile(r"<br[ ]*/>")
+        PATTERN_BR = re.compile(r"<br[ ]*?/>")
         PATTERN_SPACES = re.compile(r"\s+")
         TTML_NS = "{http://www.w3.org/ns/ttml}"
         TTML_TT = "%stt" % TTML_NS

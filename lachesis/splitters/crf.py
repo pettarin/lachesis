@@ -26,9 +26,8 @@ from __future__ import absolute_import
 from __future__ import print_function
 import os
 
-from lachesis.elements import CCListSpan
+from lachesis.elements import CCLineSpan
 from lachesis.elements import CCSpan
-from lachesis.elements import Token
 from lachesis.language import Language
 from lachesis.ml import CRFPredictor
 from lachesis.splitters.base import BaseSplitter
@@ -72,84 +71,72 @@ class CRFSplitter(BaseSplitter):
 
     def _split_sentence(self, sentence_span):
 
-        def _select_best_split(candidates):
-            #
-            # each candidate tuple is: (begin_idx, end_idx, labels, probability, string)
-            #
-            for c in candidates:
-                print(u"Candidate: %s" % str(c))
-            print(u"")
+        def _find_lines(tokens, labels):
+            labels[-1] = CRFPredictor.LABEL_LAST
+            lines = []
+            cl = []
+            for t, l in zip(tokens, labels):
+                cl.append(t)
+                if l == CRFPredictor.LABEL_LAST:
+                    lines.append(cl)
+                    cl = []
+            return [CCLineSpan(elements=l) for l in lines]
 
-            # if we have at least a LAST label, take the most probable one
-            cwl = [c for c in candidates if CRFPredictor.LABEL_LAST in c[2]]
-            if len(cwl) > 0:
-                cwl = sorted(cwl, key=lambda x: (x[3], x[1]), reverse=True)
-                return cwl[0]
+        def _merge(lines):
+            merged = []
+            n = len(lines)
+            i = 0
+            while i < n:
+                solved = False
+                if i + 1 < n:
+                    united = CCLineSpan(elements=(lines[i].elements + lines[i + 1].elements))
+                    if len(united.clean_string) <= self.max_chars_per_line:
+                        merged.append(united)
+                        i += 1
+                        solved = True
+                if (not solved) and (i > 0):
+                    united = CCLineSpan(elements=(lines[i - 1].elements + lines[i].elements))
+                    if len(united.clean_string) <= self.max_chars_per_line:
+                        merged[-1] = united
+                        solved = True
+                if not solved:
+                    merged.append(lines[i])
+                i += 1
+            return merged
 
-            # sort by probability and end index
-            # to put most probable and most long candidates first
-            candidates = sorted(candidates, key=lambda x: x[1], reverse=True)
-            #for c in candidates:
-            #    print(u"Sorted: %s" % str(c))
-            #print(u"")
-            return candidates[0]
+        def _lines_to_objects(lines):
+            n = len(lines)
+            pairs = [
+                [lines[i], lines[i + 1]] if i + 1 < n else [lines[i]]
+                for i in range(0, n, 2)
+            ]
+            return [CCSpan(elements=p) for p in pairs]
 
         # check for e.g. "(applause)" or similar OTHER fragments
         if self._is_cc_other(sentence_span):
             line = CCLineSpan(elements=sentence_span.elements)
-            cc = CCSpan(elements=[line])
-            return [cc]
+            return [CCSpan(elements=[line])]
 
         # otherwise, process it
-        tokens = [t for t in sentence_span.elements if t.is_regular]
+        tokens = [t for t in sentence_span.tokens if t.is_regular]
         clean_sentence_span = CCLineSpan(elements=tokens)
 
         # if the tokens fit into a single line,
         # create a CC with one line and return it
         if len(clean_sentence_span.clean_string) <= self.max_chars_per_line:
-            return [Span(elements=[clean_sentence_span])]
+            return [CCSpan(elements=[clean_sentence_span])]
 
         # we actually need to create more than one line
         # load the CRF model
-        predictor = CRFPredictor(self.model_file_path)
-        n = len(tokens)
         ccs = []
-        line_spans = []
-        current_line_span = Span()
-        candidates = []
-        current_line_start_idx = 0
-        idx = 0
-        while idx < n:
-            # checking if the current sublist of tokens fits in one line
-            current_line_span = CCLineSpan(elements=tokens[current_line_start_idx:idx+1])
-            aug_s = current_line_span.string(strip=True)
-            if len(aug_s) <= self.max_chars_per_line:
-                # yes, label the current sublist of tokens
-                p_labels, p_probability = predictor.predict(current_line_span)
-                candidate = (current_line_start_idx, idx + 1, p_labels, p_probability, aug_s)
-                # print(u"  New candidate: %s" % str(candidate))
-                candidates.append(candidate)
-                idx += 1
-            else:
-                # no, the current sublist would be too long
-                # select best split among the candidates seen so far
-                chosen = _select_best_split(candidates)
-                # print(u"Chosen candidate: %s" % str(chosen))
-                chosen_line = CCLineSpan(elements=tokens[chosen[0]:chosen[1]])
-                line_spans.append(chosen_line)
-                if len(line_spans) >= self.max_num_lines:
-                    # we fill the cc, add it
-                    ccs.append(CCSpan(elements=line_spans))
-                    line_spans = []
-                # reset
-                candidates = []
-                current_line_span = CCLineSpan()
-                current_line_start_idx = chosen[1]
-                idx = chosen[1]
+        predictor = CRFPredictor(self.model_file_path)
+        pred_labels, pred_probability = predictor.predict(clean_sentence_span)
 
-        if current_line_start_idx < n:
-            # we need to add the end of the sentence
-            line_spans.append(CCLineSpan(elements=tokens[current_line_start_idx:]))
-            ccs.append(CCSpan(elements=line_spans))
+        lines = _find_lines(tokens, pred_labels)
+        lines = _merge(lines)
+        ccs = _lines_to_objects(lines)
+
+        # for cc in ccs:
+        #     print(cc.marked_string(eol=u" | "))
 
         return ccs

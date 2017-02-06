@@ -87,6 +87,8 @@ class NLTKWrapper(BaseWrapper):
             tagged_tokens = self.pos_tag(lib_tokens, tagset="universal")
             for lib_token in tagged_tokens:
                 raw, upos_tag = lib_token
+                # NOTE NLTK seems to replace \" with either "``" or "''"
+                raw = raw.replace(u"''", u"\"").replace(u"``", u"\"")
                 token = self._create_token(raw, upos_tag)
                 sentence_tokens.append(token)
             sentences.append(sentence_tokens)

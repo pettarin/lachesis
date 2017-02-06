@@ -97,6 +97,62 @@ class TokenizedSentenceSpan(Span):
         return self.elements
 
     @property
+    def regular_tokens(self):
+        return [t for t in self.tokens if t.is_regular]
+
+    @property
+    def lines(self):
+        lines = []
+        cl = []
+        for t in self.tokens:
+            if t.is_special and len(cl) > 0:
+                lines.append(TokenizedLineSpan(elements=cl))
+                cl = []
+            elif not t.is_special:
+                cl.append(t)
+        if len(cl) > 0:
+            lines.append(TokenizedLineSpan(elements=cl))
+        return lines
+
+    @property
+    def raw_string(self):
+        return u" ".join([t.raw_string for t in self.tokens])
+
+    @property
+    def augmented_string(self):
+        return u"".join([t.augmented_string for t in self.tokens])
+
+    @property
+    def flat_string(self):
+        return self.augmented_string
+
+    @property
+    def prefix_lengths(self):
+        """
+        Return an array of integers,
+        of length equal to ``len(self.regular_tokens)``,
+        where the i-th element represents
+        the length of the prefix string,
+        up to the i-th token included,
+        excluding the whitespace (if any) after the i-th token.
+        """
+        rts = self.regular_tokens
+        raws = [len(t.raw) for t in rts]
+        ws = [0] + [(1 if t.trailing_whitespace else 0) for t in rts[:-1]]
+        return [r + w for r, w in zip(raws, ws)]
+
+
+class TokenizedLineSpan(Span):
+
+    @property
+    def tokens(self):
+        return self.elements
+
+    @property
+    def lines(self):
+        pass
+
+    @property
     def raw_string(self):
         return u" ".join([t.raw_string for t in self.tokens])
 
@@ -171,6 +227,10 @@ class CCListSpan(Span):
         return self.elements
 
     @property
+    def lines(self):
+        return reduce(lambda x, y: x + y, [cc for cc in self.ccs], [])
+
+    @property
     def raw_string(self):
         return u"\n\n".join([cc.raw_string for cc in self.ccs])
 
@@ -230,6 +290,10 @@ class CCLineSpan(Span):
         return self.elements
 
     @property
+    def regular_tokens(self):
+        return [t for t in self.tokens if t.is_regular]
+
+    @property
     def line(self):
         return self.raw_string
 
@@ -246,3 +310,18 @@ class CCLineSpan(Span):
     @property
     def flat_string(self):
         return u"%s %s" % (self.raw_string, EndOfLineToken.RAW)
+
+    @property
+    def prefix_lengths(self):
+        """
+        Return an array of integers,
+        of length equal to ``len(self.regular_tokens)``,
+        where the i-th element represents
+        the length of the prefix string,
+        up to the i-th token included,
+        excluding the whitespace (if any) after the i-th token.
+        """
+        rts = self.regular_tokens
+        raws = [len(t.raw) for t in rts]
+        ws = [0] + [(1 if t.trailing_whitespace else 0) for t in rts[:-1]]
+        return [r + w for r, w in zip(raws, ws)]
