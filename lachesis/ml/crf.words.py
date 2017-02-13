@@ -98,20 +98,11 @@ def sentence_to_features(
         elif len(sub) > 0:
             if gf.is_unicode(sub[0]):
                 value = u"-".join(sub)
-            elif isinstance(sub[0], int) or isinstance(sub[0], float):
+            elif isinstance(sub[0], int):
                 value = sub[-1] - sub[0]
             else:
                 value = sub
             feat[label] = value
-
-    def word_to_type(word):
-        def char_to_type(char):
-            if char.isalpha():
-                return u"A" if char.isupper() else u"a"
-            elif char.isalnum():
-                return u"n"
-            return u"x"
-        return u"".join([char_to_type(c) for c in word])
 
     # list of features to be returned, each is a dict
     feature_sequence = []
@@ -119,8 +110,6 @@ def sentence_to_features(
     tokens = sentence.regular_tokens
     # raw string of the word
     words = [t.raw for t in tokens]
-    # types of words
-    twords = [word_to_type(w) for w in words]
     # POS of the word
     poss = [t.upos_tag for t in tokens]
     # bool, True if word has trailing whitespace
@@ -138,22 +127,16 @@ def sentence_to_features(
     #            including ws
     plens = sentence.prefix_lengths
 
-    # fplens[i] = plens[i] / m
-    fplens = [float(l) / m for l in plens]
-
     # rlens[i] = length of the suffix starting at the (i+1)-th word,
     #            including ws
-    # rlens = [m - p for p in plens]
+    rlens = [m - p for p in plens]
 
     for idx in range(n):
         feat = {
             "word": words[idx],
-            "tword": twords[idx],
             "pos": poss[idx],
             "ws": wses[idx],
             # "len": lens[idx],
-            # "plen": plens[idx],
-            "fplen": fplens[idx],
         }
         if idx == 0:
             feat["bos"] = True
@@ -163,38 +146,32 @@ def sentence_to_features(
             for offset in range(1, 1 + look_behind):
                 try:
                     if plens[idx] - plens[idx - offset] <= max_chars_per_line:
-                        # add_feature(feat, "word_%d", words, idx, -offset, -offset)
-                        add_feature(feat, "tword_%d", twords, idx, -offset, -offset)
+                        add_feature(feat, "word_%d", words, idx, -offset, -offset)
                         # add_feature(feat, "ws_%d", wses, idx, -offset, -offset)
                         add_feature(feat, "pos_%d", poss, idx, -offset, -offset)
                         add_feature(feat, "pos_%d_%d", poss, idx, -offset, 0)
                         add_feature(feat, "plen_%d_%d", plens, idx, -offset, 0)
-                        add_feature(feat, "fplen_%d_%d", fplens, idx, -offset, 0)
                 except:
                     pass
 
             for offset in range(1, 1 + look_ahead):
                 try:
                     if plens[idx + offset + 1] - plens[idx] <= max_chars_per_line:
-                        # add_feature(feat, "word_%d", words, idx, +offset, +offset)
-                        add_feature(feat, "tword_%d", twords, idx, +offset, +offset)
+                        add_feature(feat, "word_%d", words, idx, +offset, +offset)
                         # add_feature(feat, "ws_%d", wses, idx, +offset, +offset)
                         add_feature(feat, "pos_%d", poss, idx, +offset, +offset)
                         add_feature(feat, "pos_%d_%d", poss, idx, 0, +offset)
                         add_feature(feat, "plen_%d_%d", plens, idx, 0, +offset)
-                        add_feature(feat, "fplen_%d_%d", fplens, idx, 0, +offset)
-                        # add_feature(feat, "rlen_%d_%d", rlens, idx, 0, +offset)
+                        add_feature(feat, "rlen_%d_%d", rlens, idx, 0, +offset)
                 except:
                     pass
 
             for offset in range(1, 1 + min(look_behind, look_ahead)):
                 try:
                     if plens[idx + offset] - plens[idx - offset] <= max_chars_per_line:
-                        # add_feature(feat, "word_%d", words, idx, -offset, +offset)
-                        add_feature(feat, "tword_%d", twords, idx, -offset, +offset)
+                        add_feature(feat, "word_%d", words, idx, -offset, +offset)
                         add_feature(feat, "pos_%d_%d", poss, idx, -offset, +offset)
                         add_feature(feat, "plen_%d_%d", plens, idx, -offset, +offset)
-                        add_feature(feat, "fplen_%d_%d", fplens, idx, -offset, +offset)
                 except:
                     pass
 
@@ -213,7 +190,6 @@ def sentence_to_features(
 def sentence_to_labels(sentence):
     labels = [[LABEL_MIDDLE for t in l.tokens] for l in sentence.lines]
     for line in labels:
-        # line[0] = LABEL_FIRST
         line[-1] = LABEL_LAST
     return reduce(lambda x, y: x + y, labels, [])
 
@@ -272,7 +248,6 @@ class CRFTrainer(object):
         #      of the split point from those facts
         #
         examples = []
-        rows = []
         for ifp in input_file_paths:
             print(u".")
             if os.path.isfile(ifp):
@@ -286,20 +261,6 @@ class CRFTrainer(object):
                     labels = sentence_to_labels(sentence)
                     example = (sentence, features, labels)
                     examples.append(example)
-
-        # ALPE
-        """
-                    for f, l in zip(features, labels):
-                        rows.append(u"%s\t%d\t%d\t%s\t%s" % (f["word"], len(f["word"]), f["ws"], f["pos"], l))
-                    rows.append(u"")
-
-        with io.open("/tmp/foo", "w", encoding="utf-8") as f:
-            f.write(u"\n".join(rows))
-            f.write(u"\n")
-        print(u"KILL ME NOW")
-        """
-        # ALPE
-
         return examples
 
     def load_data(self, obj):

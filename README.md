@@ -3,7 +3,7 @@
 **lachesis** automates the segmentation of a transcript into closed captions
 
 * Version: 0.0.3
-* Date: 2017-01-31
+* Date: 2017-02-13
 * Developed by: [Alberto Pettarin](http://www.albertopettarin.it/)
 * License: the GNU Affero General Public License Version 3 (AGPL v3)
 * Contact: [info@readbeyond.it](mailto:info@readbeyond.it)
@@ -107,6 +107,7 @@ to perform POS tagging and sentence segmentation
 
 * ``NLTK`` (install with ``pip install nltk``, [see here](http://www.nltk.org/))
 * ``Pattern`` (install with ``pip install pattern``, [see here](http://www.clips.ua.ac.be/pattern))
+* ``polyglot`` (install with ``pip install polyglot``, [see here](http://polyglot-nlp.com/))
 * ``spaCy`` (install with ``pip install spacy``, [see here](https://spacy.io/))
 * ``UDPipe`` (install with ``pip install ufal.udpipe``, [see here](https://ufal.mff.cuni.cz/))
 
@@ -126,6 +127,7 @@ Consult the documentation of your NLP library for details.
 (you can symlink them, if you installed each NLP library in a different place):
 
 * ``~/lachesis_data/nltk_data`` for ``NLTK`` ([see here](http://www.nltk.org/data.html));
+* ``~/polyglot_data`` for ``polyglot`` ([see here](http://polyglot.readthedocs.io/en/latest/Download.html));
 * ``~/lachesis_data/spacy_data`` for ``spaCy`` ([see here](https://spacy.io/docs/usage/));
 * ``~/lachesis_data/udpipe_data`` for ``UDPipe`` ([see here](https://ufal.mff.cuni.cz/udpipe)).
 
@@ -138,41 +140,41 @@ in their standard language models pack.
 (Additional languages might be supported by third party projects/downloads
 or added over time.)
 
-| Language / Library    | NLTK  | Pattern   | spaCy | UDPipe    |
-|-----------------------|-------|-----------|-------|-----------|
-| Arabic                |       |           |       | ✓         |
-| Basque                |       |           |       | ✓         |
-| Bulgarian             |       |           |       | ✓         |
-| Croatian              |       |           |       | ✓         |
-| Czech                 | ✓     |           |       | ✓         |
-| Danish                | ✓     |           |       | ✓         |
-| Dutch                 | ✓     | ✓         |       | ✓         |
-| English               | ✓     | ✓         | ✓     | ✓         |
-| Estonian              | ✓     |           |       | ✓         |
-| Finnish               | ✓     |           |       | ✓         |
-| French                | ✓     | ✓         |       | ✓         |
-| German                | ✓     | ✓         | ✓     | ✓         |
-| Gothic                |       |           |       | ✓         |
-| Greek                 | ✓     |           |       | ✓         |
-| Greek (ancient)       |       |           |       | ✓         |
-| Hebrew                |       |           |       | ✓         |
-| Hindi                 |       |           |       | ✓         |
-| Hungarian             |       |           |       | ✓         |
-| Indonesian            |       |           |       | ✓         |
-| Irish                 |       |           |       | ✓         |
-| Italian               | ✓     | ✓         |       | ✓         |
-| Latin                 |       |           |       | ✓         |
-| Norwegian             | ✓     |           |       | ✓         |
-| Old Church Slavonic   |       |           |       | ✓         |
-| Persian               |       |           |       | ✓         |
-| Polish                | ✓     |           |       | ✓         |
-| Portuguese            | ✓     |           |       | ✓         |
-| Romanian              |       |           |       | ✓         |
-| Slovenian             | ✓     |           |       | ✓         |
-| Spanish               | ✓     | ✓         |       | ✓         |
-| Swedish               | ✓     |           |       | ✓         |
-| Tamil                 |       |           |       | ✓         |
-| Turkish               | ✓     |           |       |           |
+| Language / Library    | NLTK  | Pattern   | polyglot | spaCy | UDPipe    |
+|-----------------------|-------|-----------|----------|-------|-----------|
+| Arabic                |       |           |          |       | ✓         |
+| Basque                |       |           |          |       | ✓         |
+| Bulgarian             |       |           | ✓        |       | ✓         |
+| Croatian              |       |           |          |       | ✓         |
+| Czech                 | ✓     |           | ✓        |       | ✓         |
+| Danish                | ✓     |           | ✓        |       | ✓         |
+| Dutch                 | ✓     | ✓         | ✓        |       | ✓         |
+| English               | ✓     | ✓         | ✓        | ✓     | ✓         |
+| Estonian              | ✓     |           |          |       | ✓         |
+| Finnish               | ✓     |           | ✓        |       | ✓         |
+| French                | ✓     | ✓         | ✓        |       | ✓         |
+| German                | ✓     | ✓         | ✓        | ✓     | ✓         |
+| Gothic                |       |           |          |       | ✓         |
+| Greek                 | ✓     |           |          |       | ✓         |
+| Greek (ancient)       |       |           |          |       | ✓         |
+| Hebrew                |       |           |          |       | ✓         |
+| Hindi                 |       |           |          |       | ✓         |
+| Hungarian             |       |           | ✓        |       | ✓         |
+| Indonesian            |       |           | ✓        |       | ✓         |
+| Irish                 |       |           | ✓        |       | ✓         |
+| Italian               | ✓     | ✓         | ✓        |       | ✓         |
+| Latin                 |       |           |          |       | ✓         |
+| Norwegian             | ✓     |           |          |       | ✓         |
+| Old Church Slavonic   |       |           |          |       | ✓         |
+| Persian               |       |           |          |       | ✓         |
+| Polish                | ✓     |           |          |       | ✓         |
+| Portuguese            | ✓     |           | ✓        |       | ✓         |
+| Romanian              |       |           |          |       | ✓         |
+| Slovenian             | ✓     |           | ✓        |       | ✓         |
+| Spanish               | ✓     | ✓         | ✓        |       | ✓         |
+| Swedish               | ✓     |           | ✓        |       | ✓         |
+| Tamil                 |       |           |          |       | ✓         |
+| Turkish               | ✓     |           |          |       |           |
 
 
 ## Usage
@@ -245,7 +247,7 @@ for s in doc.sentences:
     print(s.string(raw=True, eol=u"|", eos=u""))    # raw w/o CC line and sentence marks
 
 # explicitly specify the NLP library NLTK,
-# other options include: "pattern", "spacy", "udpipe"
+# other options include: "pattern", "polyglot", "spacy", "udpipe"
 nlp2 = NLPEngine()
 nlp2.analyze(doc, wrapper=u"nltk")
 ...
@@ -257,6 +259,7 @@ nlp3 = NLPEngine(preload=[
     (u"en", u"spacy"),
     (u"de", u"nltk"),
     (u"it", u"pattern"),
+    (u"es", u"polyglot"),
     (u"fr", u"udpipe")
 ])
 nlp3.analyze(doc)

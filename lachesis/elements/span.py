@@ -139,7 +139,10 @@ class TokenizedSentenceSpan(Span):
         rts = self.regular_tokens
         raws = [len(t.raw) for t in rts]
         ws = [0] + [(1 if t.trailing_whitespace else 0) for t in rts[:-1]]
-        return [r + w for r, w in zip(raws, ws)]
+        base = [r + w for r, w in zip(raws, ws)]
+        for i in range(1, len(base)):
+            base[i] += base[i - 1]
+        return base
 
 
 class TokenizedLineSpan(Span):
@@ -324,4 +327,7 @@ class CCLineSpan(Span):
         rts = self.regular_tokens
         raws = [len(t.raw) for t in rts]
         ws = [0] + [(1 if t.trailing_whitespace else 0) for t in rts[:-1]]
-        return [r + w for r, w in zip(raws, ws)]
+        base = [r + w for r, w in zip(raws, ws)]
+        for i in range(1, len(base)):
+            base[i] += base[i - 1]
+        return base

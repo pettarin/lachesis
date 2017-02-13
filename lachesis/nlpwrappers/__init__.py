@@ -28,5 +28,6 @@ from lachesis.nlpwrappers.nlpengine import NLPEngine
 from lachesis.nlpwrappers.nltk import NLTKWrapper
 from lachesis.nlpwrappers.spacy import SpacyWrapper
 from lachesis.nlpwrappers.pattern import PatternWrapper
+from lachesis.nlpwrappers.polyglot import PolyglotWrapper
 from lachesis.nlpwrappers.udpipe import UDPipeWrapper
 from lachesis.nlpwrappers.upostags import UniversalPOSTags
